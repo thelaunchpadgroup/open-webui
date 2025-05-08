@@ -307,3 +307,12 @@ dist
 cypress/videos
 cypress/screenshots
 .vscode/settings.json
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
+*.tfplan
+logs_processor.zip

@@ -1,0 +1,38 @@
+# terraform.tfvars.example - Example variable values for deployment
+# Copy this file to terraform.tfvars and update the values as needed
+
+aws_region      = "us-east-1"  # Or your preferred region
+project_name    = "openwebui"
+environment     = "production"
+domain_name     = "ai.technologymatch.com"
+root_domain     = "technologymatch.com"
+openwebui_version = "main"     # Use "main" for latest stable release
+
+# Database credentials
+db_username     = "openwebui"  # Change this
+db_password     = "YOUR_SECURE_PASSWORD"  # Change this
+
+# API keys
+openai_api_key    = "YOUR_OPENAI_API_KEY"
+anthropic_api_key = "YOUR_ANTHROPIC_API_KEY"
+gemini_api_key    = "YOUR_GEMINI_API_KEY"
+
+# OpenSearch credentials for analytics
+opensearch_admin_user     = "admin"
+opensearch_admin_password = "YOUR_SECURE_PASSWORD"  # Change this - at least 8 characters with uppercase, lowercase, numbers, and special chars
+
+# Auto scaling
+app_count       = 2
+app_min_count   = 2
+app_max_count   = 6
+
+# Container resources
+container_cpu   = 2048  # 2 vCPU - recommended for up to 20 users
+container_memory = 4096  # 4GB - recommended for up to 20 users
+
+common_tags     = {
+  Project     = "OpenWebUI"
+  ManagedBy   = "Terraform"
+  Environment = "Production"
+  Owner       = "TechnologyMatch"
+}
