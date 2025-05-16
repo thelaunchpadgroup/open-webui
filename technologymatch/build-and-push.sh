@@ -26,7 +26,53 @@ aws ecr get-login-password --region us-east-1 --profile Technologymatch | \
 
 # Build the image with our custom Dockerfile
 echo "Building Docker image with Technologymatch customizations..."
-docker build -t open-webui:$VERSION -f technologymatch/Dockerfile.custom .
+
+# Set environment variables for Microsoft 365 and OneDrive integration if provided
+MS_ENV_ARGS=""
+
+# Retrieve Microsoft credentials from AWS Secrets Manager
+echo "Retrieving Microsoft credentials from AWS Secrets Manager..."
+SECRET_JSON=$(aws --profile Technologymatch secretsmanager get-secret-value \
+  --secret-id technologymatch-open-webui-ms-credentials \
+  --query SecretString \
+  --output text)
+
+# Extract credentials from secret
+ONEDRIVE_CLIENT_ID=$(echo $SECRET_JSON | jq -r '.ONEDRIVE_CLIENT_ID')
+ONEDRIVE_SHAREPOINT_TENANT_ID=$(echo $SECRET_JSON | jq -r '.ONEDRIVE_SHAREPOINT_TENANT_ID')
+MICROSOFT_CLIENT_ID=$(echo $SECRET_JSON | jq -r '.MICROSOFT_CLIENT_ID')
+MICROSOFT_CLIENT_SECRET=$(echo $SECRET_JSON | jq -r '.MICROSOFT_CLIENT_SECRET')
+MICROSOFT_CLIENT_TENANT_ID=$(echo $SECRET_JSON | jq -r '.MICROSOFT_CLIENT_TENANT_ID')
+
+# Verify we got the secrets
+if [ -z "$MICROSOFT_CLIENT_SECRET" ]; then
+  echo "Error: Failed to retrieve secrets from AWS Secrets Manager"
+  exit 1
+fi
+
+# Add sensitive credentials from Secrets Manager
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg ONEDRIVE_CLIENT_ID=$ONEDRIVE_CLIENT_ID"
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg ONEDRIVE_SHAREPOINT_TENANT_ID=$ONEDRIVE_SHAREPOINT_TENANT_ID"
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg MICROSOFT_CLIENT_ID=$MICROSOFT_CLIENT_ID"
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg MICROSOFT_CLIENT_SECRET=$MICROSOFT_CLIENT_SECRET"
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg MICROSOFT_CLIENT_TENANT_ID=$MICROSOFT_CLIENT_TENANT_ID"
+
+# Add non-sensitive configuration
+PROD_DOMAIN=${PROD_DOMAIN:-"ai.technologymatch.com"}
+PROD_PROTOCOL=${PROD_PROTOCOL:-"https"}
+PROD_BASE_URL="${PROD_PROTOCOL}://${PROD_DOMAIN}"
+
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg ENABLE_ONEDRIVE_INTEGRATION=True"
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg ONEDRIVE_SHAREPOINT_URL=https://thelaunchpadgroup.sharepoint.com"
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg MICROSOFT_REDIRECT_URI=${PROD_BASE_URL}/oauth/microsoft/callback"
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg ENABLE_OAUTH_SIGNUP=True"
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg OAUTH_MERGE_ACCOUNTS_BY_EMAIL=True"
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg OAUTH_ALLOWED_DOMAINS=technologymatch.com,thelaunchpad.tech"
+
+echo "Microsoft 365 configuration loaded from Secrets Manager."
+
+# Build the Docker image with Technologymatch customizations
+docker build -t open-webui:$VERSION -f technologymatch/Dockerfile.custom $MS_ENV_ARGS .
 
 # Tag images with version and latest
 echo "Tagging images..."

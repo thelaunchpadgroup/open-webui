@@ -98,7 +98,7 @@ After building and pushing your custom image, you can deploy it using Terraform.
 
 The deployment includes the following custom environment variables:
 
-- `WEBUI_NAME`: Set to "Technologymatch AI" - This customizes the name displayed in the UI
+- `WEBUI_NAME`: Set to "TechGPT" - This customizes the name displayed in the UI
 
 4. Apply the changes:
    ```bash
@@ -134,7 +134,7 @@ Use this log to track build history and identify available versions for rollback
 The build process uses a custom Dockerfile (`Dockerfile.custom`) that:
 
 1. Includes all custom branding assets from the `technologymatch/static` directory
-2. Updates the application name to "Technologymatch AI" and removes the "(Open WebUI)" suffix
+2. Updates the application name to "TechGPT" and removes the "(Open WebUI)" suffix
 3. Replaces all favicons, logos, and splash images with Technologymatch branded versions
 
 #### Adding or Updating Custom Assets

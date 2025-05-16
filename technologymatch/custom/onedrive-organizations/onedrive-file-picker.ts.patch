@@ -1,0 +1,12 @@
+--- a/src/lib/utils/onedrive-file-picker.ts
++++ b/src/lib/utils/onedrive-file-picker.ts
+@@ -8,7 +8,8 @@ class OneDriveConfig {
+ 	private sharepointUrl: string = '';
+ 	private sharepointTenantId: string = '';
+ 	private msalInstance: PublicClientApplication | null = null;
+-	private currentAuthorityType: 'personal' | 'organizations' = 'personal';
++	// TechnologyMatch customization: Always default to organizations
++	private currentAuthorityType: 'personal' | 'organizations' = 'organizations';
+ 
+ 	private constructor() {}
+ 

@@ -12,9 +12,37 @@ ARG BUILD_HASH=dev-build
 ARG UID=0
 ARG GID=0
 
+# Microsoft and OneDrive integration ARGs
+ARG ENABLE_ONEDRIVE_INTEGRATION=False
+ARG ONEDRIVE_CLIENT_ID
+ARG ONEDRIVE_SHAREPOINT_URL
+ARG ONEDRIVE_SHAREPOINT_TENANT_ID
+ARG MICROSOFT_CLIENT_ID
+ARG MICROSOFT_CLIENT_SECRET
+ARG MICROSOFT_CLIENT_TENANT_ID
+ARG MICROSOFT_REDIRECT_URI
+ARG ENABLE_OAUTH_SIGNUP=False
+ARG OAUTH_MERGE_ACCOUNTS_BY_EMAIL=False
+ARG OAUTH_ALLOWED_DOMAINS
+
+# Optional Role-based access control ARGs
+ARG ENABLE_OAUTH_ROLE_MANAGEMENT=False
+ARG OAUTH_ROLES_CLAIM=roles
+ARG OAUTH_ALLOWED_ROLES
+ARG OAUTH_ADMIN_ROLES
+
+# Optional Group synchronization ARGs
+ARG ENABLE_OAUTH_GROUP_MANAGEMENT=False
+ARG ENABLE_OAUTH_GROUP_CREATION=False
+ARG OAUTH_GROUPS_CLAIM=groups
+ARG OAUTH_BLOCKED_GROUPS
+
 ######## WebUI frontend ########
 FROM --platform=$BUILDPLATFORM node:22-alpine3.20 AS build
 ARG BUILD_HASH
+
+# Install patch utility needed for our customizations
+RUN apk add --no-cache patch
 
 WORKDIR /app
 
@@ -36,10 +64,19 @@ COPY technologymatch/static/splash.png /app/static/static/splash.png
 COPY technologymatch/static/splash-dark.png /app/static/static/splash-dark.png
 COPY technologymatch/static/logo.png /app/static/static/logo.png
 
+# Apply TechnologyMatch customizations using vertical slice architecture
+
+# OneDrive Organizations-Only customization
+COPY technologymatch/custom/onedrive-organizations/InputMenu.svelte /app/src/lib/components/chat/MessageInput/InputMenu.svelte
+COPY technologymatch/custom/onedrive-organizations/onedrive-file-picker.ts.patch /app/technologymatch-onedrive-file-picker.ts.patch
+RUN cd /app && patch -p1 < technologymatch-onedrive-file-picker.ts.patch
+
 # Update app.html with our branding
-RUN sed -i 's/<title>Open WebUI<\/title>/<title>Technologymatch AI<\/title>/g' /app/src/app.html
-RUN sed -i 's/content="Open WebUI"/content="Technologymatch AI"/g' /app/src/app.html
-RUN sed -i 's/title="Open WebUI"/title="Technologymatch AI"/g' /app/src/app.html
+RUN sed -i 's/<title>Open WebUI<\/title>/<title>TechGPT<\/title>/g' /app/src/app.html
+RUN sed -i 's/content="Open WebUI"/content="TechGPT"/g' /app/src/app.html
+RUN sed -i 's/title="Open WebUI"/title="TechGPT"/g' /app/src/app.html
+
+# Custom modifications are applied directly by copying files instead of patching
 
 ENV APP_BUILD_HASH=${BUILD_HASH}
 RUN npm run build
@@ -55,6 +92,31 @@ ARG USE_EMBEDDING_MODEL
 ARG USE_RERANKING_MODEL
 ARG UID
 ARG GID
+
+# Re-declare Microsoft and OneDrive ARGs in this stage
+ARG ENABLE_ONEDRIVE_INTEGRATION
+ARG ONEDRIVE_CLIENT_ID
+ARG ONEDRIVE_SHAREPOINT_URL
+ARG ONEDRIVE_SHAREPOINT_TENANT_ID
+ARG MICROSOFT_CLIENT_ID
+ARG MICROSOFT_CLIENT_SECRET
+ARG MICROSOFT_CLIENT_TENANT_ID
+ARG MICROSOFT_REDIRECT_URI
+ARG ENABLE_OAUTH_SIGNUP
+ARG OAUTH_MERGE_ACCOUNTS_BY_EMAIL
+ARG OAUTH_ALLOWED_DOMAINS
+
+# Re-declare optional Role-based access control ARGs
+ARG ENABLE_OAUTH_ROLE_MANAGEMENT
+ARG OAUTH_ROLES_CLAIM
+ARG OAUTH_ALLOWED_ROLES
+ARG OAUTH_ADMIN_ROLES
+
+# Re-declare optional Group synchronization ARGs
+ARG ENABLE_OAUTH_GROUP_MANAGEMENT
+ARG ENABLE_OAUTH_GROUP_CREATION
+ARG OAUTH_GROUPS_CLAIM
+ARG OAUTH_BLOCKED_GROUPS
 
 ## Basis ##
 ENV ENV=prod \
@@ -182,13 +244,41 @@ COPY --chown=$UID:$GID technologymatch/static/splash-dark.png open_webui/static/
 COPY --chown=$UID:$GID technologymatch/static/logo.png open_webui/static/logo.png
 
 # Update site.webmanifest with our branding
-RUN sed -i 's/"name": "Open WebUI"/"name": "Technologymatch AI"/g' open_webui/static/site.webmanifest
+RUN sed -i 's/"name": "Open WebUI"/"name": "TechGPT"/g' open_webui/static/site.webmanifest
 
 # Patch the env.py file to remove the suffix and fix indentation
 COPY --chown=$UID:$GID technologymatch/static/favicon.png open_webui/static/favicon.png
 RUN sed -i "s/if WEBUI_NAME != \"Open WebUI\":/if WEBUI_NAME != \"Open WebUI\": # Modified/g" open_webui/env.py && \
     sed -i "s/    WEBUI_NAME += \" (Open WebUI)\"/    pass # Removed suffix/g" open_webui/env.py && \
     sed -i "s|WEBUI_FAVICON_URL = \"https://openwebui.com/favicon.png\"|WEBUI_FAVICON_URL = \"\"|g" open_webui/env.py
+
+# Add Microsoft 365 and OneDrive configuration
+ENV ENABLE_ONEDRIVE_INTEGRATION=${ENABLE_ONEDRIVE_INTEGRATION:-False}
+ENV ONEDRIVE_CLIENT_ID=${ONEDRIVE_CLIENT_ID:-}
+ENV ONEDRIVE_SHAREPOINT_URL=${ONEDRIVE_SHAREPOINT_URL:-}
+ENV ONEDRIVE_SHAREPOINT_TENANT_ID=${ONEDRIVE_SHAREPOINT_TENANT_ID:-}
+
+ENV MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID:-}
+ENV MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET:-}
+ENV MICROSOFT_CLIENT_TENANT_ID=${MICROSOFT_CLIENT_TENANT_ID:-}
+ENV MICROSOFT_OAUTH_SCOPE=${MICROSOFT_OAUTH_SCOPE:-"openid email profile"}
+ENV MICROSOFT_REDIRECT_URI=${MICROSOFT_REDIRECT_URI:-}
+
+ENV ENABLE_OAUTH_SIGNUP=${ENABLE_OAUTH_SIGNUP:-False}
+ENV OAUTH_MERGE_ACCOUNTS_BY_EMAIL=${OAUTH_MERGE_ACCOUNTS_BY_EMAIL:-False}
+
+# Optional Role-based access control
+ENV ENABLE_OAUTH_ROLE_MANAGEMENT=${ENABLE_OAUTH_ROLE_MANAGEMENT:-False}
+ENV OAUTH_ROLES_CLAIM=${OAUTH_ROLES_CLAIM:-roles}
+ENV OAUTH_ALLOWED_ROLES=${OAUTH_ALLOWED_ROLES:-User,OpenWebUI.User}
+ENV OAUTH_ADMIN_ROLES=${OAUTH_ADMIN_ROLES:-Admin,OpenWebUI.Admin}
+
+# Optional Group synchronization
+ENV ENABLE_OAUTH_GROUP_MANAGEMENT=${ENABLE_OAUTH_GROUP_MANAGEMENT:-False}
+ENV ENABLE_OAUTH_GROUP_CREATION=${ENABLE_OAUTH_GROUP_CREATION:-False}
+ENV OAUTH_GROUPS_CLAIM=${OAUTH_GROUPS_CLAIM:-groups}
+ENV OAUTH_BLOCKED_GROUPS=${OAUTH_BLOCKED_GROUPS:-}
+ENV OAUTH_ALLOWED_DOMAINS=${OAUTH_ALLOWED_DOMAINS:-*}
 
 EXPOSE 8080
 
@@ -199,6 +289,6 @@ USER $UID:$GID
 ARG BUILD_HASH
 ENV WEBUI_BUILD_VERSION=${BUILD_HASH}
 ENV DOCKER=true
-ENV WEBUI_NAME="Technologymatch AI"
+ENV WEBUI_NAME="TechGPT"
 
 CMD [ "bash", "start.sh"]
