@@ -68,6 +68,7 @@ MS_ENV_ARGS="$MS_ENV_ARGS --build-arg MICROSOFT_REDIRECT_URI=${PROD_BASE_URL}/oa
 MS_ENV_ARGS="$MS_ENV_ARGS --build-arg ENABLE_OAUTH_SIGNUP=True"
 MS_ENV_ARGS="$MS_ENV_ARGS --build-arg OAUTH_MERGE_ACCOUNTS_BY_EMAIL=True"
 MS_ENV_ARGS="$MS_ENV_ARGS --build-arg OAUTH_ALLOWED_DOMAINS=technologymatch.com,thelaunchpad.tech"
+MS_ENV_ARGS="$MS_ENV_ARGS --build-arg ENABLE_LOGIN_FORM=False"
 
 echo "Microsoft 365 configuration loaded from Secrets Manager."
 

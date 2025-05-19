@@ -58,6 +58,7 @@ docker run -d --name technologymatch-webui -p 3000:8080 \
   -e AUTH_BASE_URL="http://localhost:3000" \
   -e AUTH_REDIRECT_BASE_URL="http://localhost:3000" \
   -e LOG_LEVEL="DEBUG" \
+  -e ENABLE_LOGIN_FORM="False" \
   technologymatch-openwebui:local
 
 echo "Deployment complete! Container is starting..."
